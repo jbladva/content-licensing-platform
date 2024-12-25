@@ -1,0 +1,48 @@
+version: "1"
+services:
+  clp-service:
+    build:
+      context: ./clp-service
+    restart: on-failure
+    env_file: ./.env
+    container_name: clp-service
+    ports:
+      - $SPRING_LOCAL_PORT:$SPRING_DOCKER_PORT
+    networks:
+      - clp-network
+    depends_on:
+      postgres:
+        condition: service_started
+    environment:
+      SPRING_APPLICATION_JSON: '{
+            "spring.datasource.url"  : "jdbc:postgresql://postgres:$POSTGRES_DOCKER_PORT/$POSTGRES_DATABASE",
+            "spring.datasource.username" : "$POSTGRES_USER",
+            "spring.datasource.password" : "$POSTGRES_ROOT_PASSWORD",
+            "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.PostgreSQLDialect",
+            "spring.jpa.hibernate.ddl-auto" : "update"
+          }'
+    volumes:
+      - .m2:/root/.m2
+    stdin_open: true
+    tty: true
+
+  postgres:
+    image: postgres
+    restart: unless-stopped
+    env_file: ./.env
+    networks:
+      - clp-network
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_ROOT_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DATABASE
+    ports:
+      - $POSTGRES_LOCAL_PORT:$POSTGRES_DOCKER_PORT
+    volumes:
+      - db:/var/lib/postgres
+
+networks:
+  clp-network:
+
+volumes:
+  db:
